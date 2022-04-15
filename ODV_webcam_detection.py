@@ -143,17 +143,9 @@ freq = cv2.getTickFrequency()
 videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
 
-#for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
-while True:
 
-    # Start timer (for calculating frame rate)
-    t1 = cv2.getTickCount()
-
-    # Grab frame from video stream
-    frame1 = videostream.read()
-
+def detect_from_frame(frame):
     # Acquire frame and resize to expected shape [1xHxWx3]
-    frame = frame1.copy()
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame_resized = cv2.resize(frame_rgb, (width, height))
     input_data = np.expand_dims(frame_resized, axis=0)
@@ -170,6 +162,52 @@ while True:
     boxes = interpreter.get_tensor(output_details[boxes_idx]['index'])[0] # Bounding box coordinates of detected objects
     classes = interpreter.get_tensor(output_details[classes_idx]['index'])[0] # Class index of detected objects
     scores = interpreter.get_tensor(output_details[scores_idx]['index'])[0] # Confidence of detected objects
+    return boxes,classes,scores
+
+
+
+def calculate_ref_image_object_width(imagePath, wantedObjectName : str):
+    image = cv2.imread(imagePath)
+    boxes,classes,scores = detect_from_frame(image)
+    imageWidth = -1
+
+    for i in range(len(scores)):
+        if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
+            # Get bounding box coordinates and draw box
+            # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
+            ymin = int(max(1,(boxes[i][0] * imH)))
+            xmin = int(max(1,(boxes[i][1] * imW)))
+            ymax = int(min(imH,(boxes[i][2] * imH)))
+            xmax = int(min(imW,(boxes[i][3] * imW)))
+            
+            #object big rectangle
+            cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)           
+            object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
+
+            if (object_name == wantedObjectName):
+                imageWidth = (xmax-xmin)
+                break
+    
+    return imageWidth
+
+
+#get ref images width here
+##testing
+ref_mobile = cv2.imread('ref_images/phone.jpeg')
+width = calculate_ref_image_object_width(ref_mobile)
+print(width)
+
+
+#for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
+while True:
+
+    # Start timer (for calculating frame rate)
+    t1 = cv2.getTickCount()
+
+    # Grab frame from video stream
+    frame1 = videostream.read()
+    frame = frame1.copy()
+    boxes,classes,scores = detect_from_frame(frame)
 
     # Loop over all detections and draw detection box if confidence is above minimum threshold
     for i in range(len(scores)):
@@ -182,6 +220,7 @@ while True:
             ymax = int(min(imH,(boxes[i][2] * imH)))
             xmax = int(min(imW,(boxes[i][3] * imW)))
             
+            # Draw object big surrounding rectangle
             cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
             # Draw label
@@ -211,3 +250,5 @@ while True:
 # Clean up
 cv2.destroyAllWindows()
 videostream.stop()
+
+
