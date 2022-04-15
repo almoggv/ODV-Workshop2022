@@ -192,12 +192,23 @@ def calculate_ref_image_object_width(imagePath : str, wantedObjectName : str):
     return imageWidth
 
 
+def focal_length_finder (real_measured_distance, real_object_width, width_in_pixels):
+    focal_length = (width_in_pixels * real_measured_distance) / real_object_width
+
+    return focal_length
+
+def distance_finder(focal_length, real_object_width, object_current_width_in_frmae):
+    distance = (real_object_width * focal_length) / object_current_width_in_frmae
+    return distance
+
 #get ref images width here
 ##testing
 ref_mobile_img_path = 'ref_images/phone.jpeg'
 ref_keyboard_img_path = 'ref_images/keyboard.jpeg'
 test_width = calculate_ref_image_object_width(ref_keyboard_img_path, "keyboard")
 print(test_width)
+
+focal_keyboard = focal_length_finder(94, 44, 500)
 
 
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
@@ -225,9 +236,13 @@ while True:
             # Draw object big surrounding rectangle
             cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
+            distance = distance_finder(focal_keyboard, 44, xmax-xmin)
+
             # Draw label
             object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
-            label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
+            if (object_name != 'keyboard'):
+              distance=0
+            label = '%s: %d%% dist: %d' % (object_name, int(scores[i]*100), distance) # Example: 'person: 72%'
             labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
             label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
             cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
