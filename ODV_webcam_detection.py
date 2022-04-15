@@ -166,7 +166,7 @@ def detect_from_frame(frame):
 
 
 
-def calculate_ref_image_object_width(imagePath, wantedObjectName : str):
+def calculate_ref_image_object_width(imagePath : str, wantedObjectName : str):
     image = cv2.imread(imagePath)
     boxes,classes,scores = detect_from_frame(image)
     imageWidth = -1
@@ -184,6 +184,9 @@ def calculate_ref_image_object_width(imagePath, wantedObjectName : str):
             cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)           
             object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
 
+            print("detected object name: " , object_name)
+            print("wanted object name: ", wantedObjectName)
+
             if (object_name == wantedObjectName):
                 imageWidth = (xmax-xmin)
                 break
@@ -193,9 +196,10 @@ def calculate_ref_image_object_width(imagePath, wantedObjectName : str):
 
 #get ref images width here
 ##testing
-ref_mobile = cv2.imread('ref_images/phone.jpeg')
-width = calculate_ref_image_object_width(ref_mobile)
-print(width)
+ref_mobile_img_path = 'ref_images/phone.jpeg'
+ref_keyboard_img_path = 'ref_images/keyboard.jpeg'
+test_width = calculate_ref_image_object_width(ref_keyboard_img_path, "keyboard")
+print(test_width)
 
 
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
