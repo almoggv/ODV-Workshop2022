@@ -72,7 +72,7 @@ class ODV:
 
         #TODO: load image reference wid
 
-th    def run_detection(self, focal_keyboard):  
+    def run_detection(self, focal_keyboard):  
         while True:
             # Start timer (for calculating frame rate)
             t1 = cv2.getTickCount()
