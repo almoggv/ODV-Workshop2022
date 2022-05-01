@@ -10,6 +10,7 @@ import importlib.util
 # tflite_runtime is installed, import interpreter from tflite_runtime
 from tflite_runtime.interpreter import Interpreter
 from VideoStream import *
+import json
 
 class ODV:
     INPUT_MEAN = 127.5
@@ -97,6 +98,7 @@ class ODV:
                     cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
                     #TODO: update
+                    # 44 == real width of recognized object in real life
                     distance = self.distance_finder(focal_keyboard, 44, xmax-xmin)
 
                     # Draw label
@@ -151,7 +153,7 @@ class ODV:
         return boxes, classes, scores
 
     def calculate_ref_image_object_width(self, imagePath : str, wantedObjectName : str):
-        image = cv2.imread(imagePath)
+        image = cv2.imread(imagePath)       
         boxes, classes, scores = self.detect_from_frame(image)
         imageWidth = -1
 
@@ -180,9 +182,46 @@ class ODV:
     def focal_length_finder (self, real_measured_distance, real_object_width, width_in_pixels):
         focal_length = (width_in_pixels * real_measured_distance) / real_object_width
 
+        # focal_length is defined and is constant for each camera.
+        # meaning - for all objects detected, the focal length needs to be the same..
+        # note:
+        #   when switching cameras, you'll need a new refrence image taken with the new camera for an accurate calculation (with the object's width and distance from camera measured irl)
+
         return focal_length
 
     def distance_finder(self, focal_length, real_object_width, object_current_width_in_frmae):
         distance = (real_object_width * focal_length) / object_current_width_in_frmae
         
         return distance
+
+    def get_object_focal_length(self, ref_image_path:str, ref_image_label:str):
+        object_width_in_pixles = self.calculate_ref_image_object_width(ref_image_path, ref_image_label)
+        if(object_width_in_pixles <= 0):
+            return object_width_in_pixles # -1
+            
+        ref_config = {}
+        #  TODO: move hard coded location    
+        with open('./ref_images/ref_config.json') as json_file:
+            ref_config = json.load(json_file)
+            # handle no json_file
+        
+        ref_image_info = ref_config[ref_image_label]
+        real_width = ref_image_info["width"]
+        real_distance = ref_image_info["distance"]
+
+        if(not real_width or not real_distance):
+            return -1
+
+        focal_length = self.focal_length_finder(real_distance,real_width,object_width_in_pixles)    
+        
+        return focal_length
+        
+
+        
+        # get real distance & real width from config file
+        # calculate focal lenght
+        # return focal length
+    
+
+    #focal_length_finder (self, real_measured_distance, real_object_width, width_in_pixels)
+    #obecjt_width_in_reallife = self.width_dictionary[ref_image_label]

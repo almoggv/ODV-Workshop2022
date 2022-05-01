@@ -1,0 +1,30 @@
+Distance finder Algorithm:
+
+For each camera:
+
+1) Obtain Ref Images for two object.
+    * try to take straight photos - not on a diagonal
+
+2) Find The Focal Length of the current camera.
+    2.1) find the focal length of the first object
+    2.2) find the focal length of the second object
+    2.3) compare them for a quality check
+
+3) read Dictionary of [label] = (real_width) from configuration json file
+
+
+*** 
+odv.run_detection(dictionry, focal_length)
+
+***
+
+4) For listed object we run 'distance_finder(focal_length, [object].real_width, xmax-xmin)
+
+
+// Headers
+
+//def focal_length_finder (self, real_measured_distance, real_object_width, width_in_pixels):
+
+//def distance_finder(self, focal_length, real_object_width, object_current_width_in_frmae):
+
+

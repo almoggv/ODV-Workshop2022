@@ -43,18 +43,23 @@ def main():
     # Construct ODV Class   
     odv = ODV(MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH)
 
-    # TODO: method into focal finder
-    #get ref images width here
     ##testing
-    ref_mobile_img_path = 'ref_images/phone.jpeg'
-    ref_keyboard_img_path = 'ref_images/keyboard.jpeg'
-    test_width = odv.calculate_ref_image_object_width(ref_keyboard_img_path, "keyboard")
-    print(test_width)
-    #used hard coded test_width
-    focal_keyboard = odv.focal_length_finder(94, 44, 500)
+    ref_book_img_path = 'ref_images/book.jpg'
+    ref_keyboard_img_path = 'ref_images/keyboard2.jpg'
+    focal_keyboard = odv.get_object_focal_length(ref_book_img_path, "book")
+    focal_keyboard2 = odv.get_object_focal_length(ref_keyboard_img_path, "keyboard")
+    print("Results:")
+    print(focal_keyboard)
+    print(focal_keyboard2)
     ####################################################
 
-    odv.run_detection(focal_keyboard)
+    # odv.run_detection(focal_keyboard)
 
 if __name__ == '__main__':
    main()
+
+
+#method for odv class
+
+    
+

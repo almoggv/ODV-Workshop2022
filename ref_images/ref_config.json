@@ -1,0 +1,10 @@
+{
+    "keyboard" : {
+      "width" : 45.5,
+      "distance": 68
+    },
+    "book" : {
+      "width" : 25.5,
+      "distance": 68
+    }
+}
