@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/pi/ODV-Workshop2022/Main_Detection.py", line 52, in <module>
+    main()
+  File "/home/pi/ODV-Workshop2022/Main_Detection.py", line 49, in main
+    odv.run_detection()
+  File "/home/pi/ODV-Workshop2022/ODV.py", line 113, in run_detection
+    if (object_name in self.REAL_WIDTH_DICTIONARY.keys):
+TypeError: argument of type 'builtin_function_or_method' is not iterable

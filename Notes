@@ -1,37 +1,16 @@
-
 ### for next session:
-  * create width.json file (hard-coded json)
-  * read distances from json file into a dictionary
-  * detect() use the dicitionary to find distance per object
-  * fix TODOS
+  * MVP:
+  * Identify object location in screen ( split screen to grid )
+  * Alert based on placment (object in X meters turn right)
+  * Chair, Backpack, potted plant
+
+  * Connect headphones
+  * Portable - portable battery, ssh to Pi
+  
+### backlog:
+  * integrate logger
 
 ### Streched Goals
-   * Male Libot
-  
-
-
-
-
-detected object name:  keyboard
-wanted object name:  keyboard
-detected object name:  book
-wanted object name:  book
-794
-480
-Results:
-1551.909090909091
-1965.7142857142858
-
-
-
-###################
-detected object name:  keyboard
-wanted object name:  keyboard
-detected object name:  book
-wanted object name:  book
-794
-480
-Results:
-1186.6373626373627
-1280.0
+  * Male Libot
+  * DB
 

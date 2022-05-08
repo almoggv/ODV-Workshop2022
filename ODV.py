@@ -11,12 +11,20 @@ import importlib.util
 from tflite_runtime.interpreter import Interpreter
 from VideoStream import *
 import json
+from Logger import *
+
 
 class ODV:
     INPUT_MEAN = 127.5
     INPUT_STD = 127.5
-   
-    def __init__(self, MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH):
+    REAL_WIDTH_DICTIONARY = {}
+    FOCAL_CALIBRATION_CONFIG_PATH = './ref_images/focal_calibration_config.json'
+    REAL_WIDTH_CONFIG_PATH = './ref_images/real_width_config.json'
+
+    def __init__(self, MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, log_level):
+        # Logger
+        self.logger = Logger(log_level)
+
         # Get path to current working directory
         CWD_PATH = os.getcwd()
 
@@ -71,9 +79,13 @@ class ODV:
         self.videostream = VideoStream(resolution=(self.imW, self.imH), framerate=30).start()
         time.sleep(1)
 
+        self.load_reference_image_width()
+        print(f"dictionary: {self.REAL_WIDTH_DICTIONARY}")
+        self.focal = self.get_camera_focal_length()
+
         #TODO: load image reference wid
 
-    def run_detection(self, focal_keyboard):  
+    def run_detection(self):
         while True:
             # Start timer (for calculating frame rate)
             t1 = cv2.getTickCount()
@@ -97,20 +109,16 @@ class ODV:
                     # Draw object big surrounding rectangle
                     cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
-                    #TODO: update
-                    # 44 == real width of recognized object in real life
-                    distance = self.distance_finder(focal_keyboard, 44, xmax-xmin)
-
                     # Draw label
                     object_name = self.labels[int(classes[i])] # Look up object name from "labels" array using class index
-                    if (object_name != 'keyboard'):
-                        distance = 0
-                    label = '%s: %d%% dist: %d' % (object_name, int(scores[i]*100), distance) # Example: 'person: 72%'
-                    labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
-                    label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
-                    cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
-                    # Draw white box to put label text in
-                    cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+                    if (object_name in self.REAL_WIDTH_DICTIONARY):
+                        distance = self.distance_finder(self.focal, self.REAL_WIDTH_DICTIONARY[object_name] , xmax-xmin)
+                        label = '%s: %d%% dist: %d' % (object_name, int(scores[i]*100), distance) # Example: 'person: 72%'
+                        labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
+                        label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
+                        cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
+                        # Draw white box to put label text in
+                        cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
 
             # Draw framerate in corner of frame
             cv2.putText(frame,'FPS: {0:.2f}'.format(self.frame_rate_calc),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
@@ -139,7 +147,7 @@ class ODV:
 
         # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
         if self.floating_model:
-            input_data = (np.float32(input_data) - INPUT_MEAN) / INPUT_STD
+            input_data = (np.float32(input_data) - self.INPUT_MEAN) / self.INPUT_STD
 
         # Perform the actual detection by running the model with the image as input
         self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
@@ -201,7 +209,7 @@ class ODV:
             
         ref_config = {}
         #  TODO: move hard coded location    
-        with open('./ref_images/ref_config.json') as json_file:
+        with open(self.FOCAL_CALIBRATION_CONFIG_PATH) as json_file:
             ref_config = json.load(json_file)
             # handle no json_file
         
@@ -209,19 +217,38 @@ class ODV:
         real_width = ref_image_info["width"]
         real_distance = ref_image_info["distance"]
 
-        if(not real_width or not real_distance):
-            return -1
+        assert (real_width and real_distance), f"config failure: missing distrance or width of {ref_image_label}"
 
-        focal_length = self.focal_length_finder(real_distance,real_width,object_width_in_pixles)    
+        focal_length = self.focal_length_finder(real_distance, real_width,object_width_in_pixles)
         
         return focal_length
         
+    def get_camera_focal_length(self):
+        result_focal = 0
+        results_arr = []
+        ref_config = {}
+        counter = 0
+        previous_index = 0
+        with open(self.FOCAL_CALIBRATION_CONFIG_PATH) as json_file:
+            ref_config = json.load(json_file)
 
+        for key in ref_config:
+            path =  './ref_images/' + key + '.jpg'
+            current_focal = self.get_object_focal_length(path,key)
+            if(current_focal > 0):
+                results_arr.append(current_focal)
         
-        # get real distance & real width from config file
-        # calculate focal lenght
-        # return focal length
-    
+        for value in results_arr:
+            assert ((value*1.2) >= results_arr[previous_index] or (value*0.8) <= results_arr[previous_index]), f"focal calculation - diviation too large: previous:{results_arr[previous_index]} current:{value}"
+            counter += 1
+            result_focal += value
+            previous_index += 1
 
-    #focal_length_finder (self, real_measured_distance, real_object_width, width_in_pixels)
-    #obecjt_width_in_reallife = self.width_dictionary[ref_image_label]
+        assert (counter != 0) , "No objects to calibrate focal length!"
+        result_focal = result_focal / counter #calculate average focal length
+
+        return result_focal
+
+    def load_reference_image_width(self):
+        with open(self.REAL_WIDTH_CONFIG_PATH) as json_file:
+            self.REAL_WIDTH_DICTIONARY = json.load(json_file)

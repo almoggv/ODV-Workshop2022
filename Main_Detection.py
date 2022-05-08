@@ -23,6 +23,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modeldir', help='Folder the .tflite file is located in',
                         required=True)
+    parser.add_argument('--log', help='Turn logger on',
+                        default=0)
     parser.add_argument('--graph', help='Name of the .tflite file, if different than detect.tflite',
                         default='detect.tflite')
     parser.add_argument('--labels', help='Name of the labelmap file, if different than labelmap.txt',
@@ -39,21 +41,12 @@ def main():
     LABELMAP_NAME = args.labels
     min_conf_threshold = float(args.threshold)
     resW, resH = args.resolution.split('x')
+    LOG_LVL = args.log
 
     # Construct ODV Class   
-    odv = ODV(MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH)
+    odv = ODV(MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, LOG_LVL)
 
-    ##testing
-    ref_book_img_path = 'ref_images/book.jpg'
-    ref_keyboard_img_path = 'ref_images/keyboard2.jpg'
-    focal_keyboard = odv.get_object_focal_length(ref_book_img_path, "book")
-    focal_keyboard2 = odv.get_object_focal_length(ref_keyboard_img_path, "keyboard")
-    print("Results:")
-    print(focal_keyboard)
-    print(focal_keyboard2)
-    ####################################################
-
-    # odv.run_detection(focal_keyboard)
+    odv.run_detection()
 
 if __name__ == '__main__':
    main()
