@@ -2,9 +2,10 @@
   * MVP:
   * Identify object location in screen ( split screen to grid )
   * Alert based on placment (object in X meters turn right)
+  * Alert timeout! (do not spam alerts) Cache Map / Dictiornary w/ timestamps
   * Chair, Backpack, potted plant
 
-  * Connect headphones
+  * Connect headphones/ speaker
   * Portable - portable battery, ssh to Pi
   
 ### backlog:

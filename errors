@@ -1,8 +1,36 @@
+
+During handling of the above exception, another exception occurred:
+
 Traceback (most recent call last):
   File "/home/pi/ODV-Workshop2022/Main_Detection.py", line 52, in <module>
     main()
   File "/home/pi/ODV-Workshop2022/Main_Detection.py", line 49, in main
     odv.run_detection()
-  File "/home/pi/ODV-Workshop2022/ODV.py", line 113, in run_detection
-    if (object_name in self.REAL_WIDTH_DICTIONARY.keys):
-TypeError: argument of type 'builtin_function_or_method' is not iterable
+  File "/home/pi/ODV-Workshop2022/ODV.py", line 117, in run_detection
+    self.alert(distance, (xmax-xmin)/2)
+  File "/home/pi/ODV-Workshop2022/ODV.py", line 267, in alert
+    engine = pyttsx3.init() #ctor
+  File "/usr/local/lib/python3.9/dist-packages/pyttsx3/__init__.py", line 22, in init
+    eng = Engine(driverName, debug)
+  File "/usr/local/lib/python3.9/dist-packages/pyttsx3/engine.py", line 30, in __init__
+    self.proxy = driver.DriverProxy(weakref.proxy(self), driverName, debug)
+  File "/usr/local/lib/python3.9/dist-packages/pyttsx3/driver.py", line 50, in __init__
+    self._module = importlib.import_module(name)
+  File "/usr/lib/python3.9/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1030, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 680, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 790, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/usr/local/lib/python3.9/dist-packages/pyttsx3/drivers/espeak.py", line 9, in <module>
+    from . import _espeak, toUtf8, fromUtf8
+  File "/usr/local/lib/python3.9/dist-packages/pyttsx3/drivers/_espeak.py", line 18, in <module>
+    dll = cdll.LoadLibrary('libespeak.so.1')
+  File "/usr/lib/python3.9/ctypes/__init__.py", line 452, in LoadLibrary
+    return self._dlltype(name)
+  File "/usr/lib/python3.9/ctypes/__init__.py", line 374, in __init__
+    self._handle = _dlopen(self._name, mode)
+OSError: libespeak.so.1: cannot open shared object file: No such file or directory
+
