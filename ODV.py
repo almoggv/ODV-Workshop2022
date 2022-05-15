@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import sys
 import time
+from datetime import datetime
 from threading import Thread
 import importlib.util
 # Import TensorFlow libraries
@@ -11,8 +12,8 @@ import importlib.util
 from tflite_runtime.interpreter import Interpreter
 from VideoStream import *
 import json
-from Logger import *
 import pyttsx3
+import logging
 
 class ODV:
     INPUT_MEAN = 127.5
@@ -20,11 +21,15 @@ class ODV:
     REAL_WIDTH_DICTIONARY = {}
     FOCAL_CALIBRATION_CONFIG_PATH = './ref_images/focal_calibration_config.json'
     REAL_WIDTH_CONFIG_PATH = './ref_images/real_width_config.json'
+    LOG_DIR_PATH = './logs/'
     
 
     def __init__(self, MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, log_level):
-        # Logger
-        self.logger = Logger(log_level)
+        #Logger
+        logging.basicConfig(level=log_level ,handlers=[
+        logging.FileHandler('./logs/'+str(datetime.now())),
+        logging.StreamHandler(sys.stdout)])
+        logging.debug("starting ODV, created log file")
 
         # Get path to current working directory
         CWD_PATH = os.getcwd()
@@ -84,8 +89,9 @@ class ODV:
         print(f"dictionary: {self.REAL_WIDTH_DICTIONARY}")
         self.focal = self.get_camera_focal_length()
 
-        self.engine = pyttsx3.init() #ctor
-        #TODO: load image reference wid
+        #TODO: change to dicionary per object - last alerted timestamp
+        self.last_alert = datetime.now()
+        self.engine = pyttsx3.init() #ctor        
 
     def run_detection(self):
         while True:
@@ -113,10 +119,10 @@ class ODV:
 
                     # Draw label
                     object_name = self.labels[int(classes[i])] # Look up object name from "labels" array using class index
-
+                    print(f"object name: {object_name}")
                     if (object_name in self.REAL_WIDTH_DICTIONARY):
                         distance = self.distance_finder(self.focal, self.REAL_WIDTH_DICTIONARY[object_name] , xmax-xmin)
-                        self.alert(object_name , distance, (xmax-xmin)/2)
+                        self.alert(object_name , distance, ( xmin + (xmax-xmin)/2))
                         label = '%s: %d%% dist: %d' % (object_name, int(scores[i]*100), distance) # Example: 'person: 72%'
                         labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
                         label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
@@ -128,7 +134,7 @@ class ODV:
             cv2.putText(frame,'FPS: {0:.2f}'.format(self.frame_rate_calc),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
 
             # All the results have been drawn on the frame, so it's time to display it.
-            cv2.imshow('ODV', frame)
+            # cv2.imshow('ODV', frame)
 
             # Calculate framerate
             t2 = cv2.getTickCount()
@@ -259,18 +265,26 @@ class ODV:
 
     def alert(self, object_lable ,object_distance, object_middle_point ):
         warning = ""
-        if (object_middle_point < self.imW*1/3 ): #left third screen
-            # TODO: Meters/CM
-            warning = f"{object_lable} FROM LEFT!!!!!! in {int(object_distance)} meters"
-            print(warning)
-            self.engine.say(warning)
-        elif (object_middle_point >= self.imW*2/3 ):
-            warning = f"{object_lable} FROM RIGHT!!!!!! in {int(object_distance)} meters"
-            print(warning)
-            self.engine.say(warning)
-        else:
-            warning = f"{object_lable} AHEAD!!!!!! you need to move"
-            print(warning)
-            self.engine.say(warning)
-        self.engine.runAndWait()
+        diff = (datetime.now() - self.last_alert).seconds
+        logging.debug(f"alert time diff:{diff}")
+        print(f"imw: {self.imW}, middle point: {object_middle_point}")
+        object_distance = (object_distance / 100.0)
 
+        if(diff >= 5 ):
+            if (object_middle_point < (self.imW/3)): #left third screen
+                # TODO: Meters/CM
+                warning = f"{object_lable} from left"            
+                self.engine.say(warning)
+            elif (object_middle_point >= self.imW*2/3 ):
+                warning = f"{object_lable} from right"            
+                self.engine.say(warning)
+            else:
+                warning = f"{object_lable} ahead"            
+                self.engine.say(warning)
+            self.last_alert = datetime.now()
+            
+            logging.debug(f"alert print: {warning}, distance {object_distance}")
+            self.engine.runAndWait()
+        
+            
+       

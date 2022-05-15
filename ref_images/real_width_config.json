@@ -3,5 +3,8 @@
     "book" : 21,
     "box" : 10,
     "yaakov" : 44,
-    "banana": 10
+    "banana": 10,
+    "backpack": 40,
+    "suitcase": 40,
+    "chair": 60
 }

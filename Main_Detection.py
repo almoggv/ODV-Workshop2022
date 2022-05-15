@@ -17,6 +17,7 @@ import sys
 import time
 import importlib.util
 from ODV import *
+import logging
 
 def main():
     # Define and parse input arguments
@@ -24,7 +25,7 @@ def main():
     parser.add_argument('--modeldir', help='Folder the .tflite file is located in',
                         required=True)
     parser.add_argument('--log', help='Turn logger on',
-                        default=0)
+                        default=logging.DEBUG)
     parser.add_argument('--graph', help='Name of the .tflite file, if different than detect.tflite',
                         default='detect.tflite')
     parser.add_argument('--labels', help='Name of the labelmap file, if different than labelmap.txt',
@@ -47,6 +48,7 @@ def main():
     odv = ODV(MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, LOG_LVL)
 
     odv.run_detection()
+
 
 if __name__ == '__main__':
    main()
