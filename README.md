@@ -34,7 +34,7 @@ Eliya Netanel, Matan Breizman, Almog Geva
 
 ### Guide: 
 
-dr. Michal Bril Glasner
+Dr. Michal Bril Glasner
 
 ### Technical guide: 
 
