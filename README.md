@@ -17,11 +17,13 @@ All in a Plug&Play, User-Friendly and easy to use final product.
 
 ## Installation
 
+To install all the dependencies run the following command:
 ```
-Use the get_pi_requirements.py 
+get_pi_requirements.sh 
 ```
 ## Usage
 
+To activate the program run the following command: 
 ```
 python3 ODV_webcan_detection.py --modeldir=Sample_TFLite_model
 ```
@@ -32,7 +34,7 @@ Eliya Netanel, Matan Breizman, Almog Geva
 
 ### Guide: 
 
-Michal Bril
+dr. Michal Bril Glasner
 
 ### Technical guide: 
 
