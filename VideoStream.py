@@ -7,13 +7,14 @@ from threading import Thread
 # Define VideoStream class to handle streaming of video from webcam in separate processing thread
 class VideoStream:
     """Camera object that controls video streaming from the Picamera"""
-    def __init__(self,resolution=(640,480),framerate=30):
+    def __init__(self,resolution=(640,480),framerate=3):
         # Initialize the PiCamera and the camera image stream
-        self.stream = cv2.VideoCapture(0)
+        #cap = cv2.VideoCapture(index, cv2.CAP_V4L)
+        self.stream = cv2.VideoCapture(-1)
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         ret = self.stream.set(3,resolution[0])
-        ret = self.stream.set(4,resolution[1])
-            
+        ret = self.stream.set(4,resolution[1])        
+
         # Read first frame from the stream
         (self.grabbed, self.frame) = self.stream.read()
 

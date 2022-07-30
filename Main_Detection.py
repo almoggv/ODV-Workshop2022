@@ -34,6 +34,9 @@ def main():
                         default=0.5)
     parser.add_argument('--resolution', help='Desired webcam resolution in WxH. If the webcam does not support the resolution entered, errors may occur.',
                         default='1280x720')
+    parser.add_argument('--gui', help='By defualt = off, use this flag to turn on visual stream on screen.',
+                        default=False)
+
 
     args = parser.parse_args()
 
@@ -43,9 +46,10 @@ def main():
     min_conf_threshold = float(args.threshold)
     resW, resH = args.resolution.split('x')
     LOG_LVL = args.log
+    GUI_FLAG = args.gui
 
     # Construct ODV Class   
-    odv = ODV(MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, LOG_LVL)
+    odv = ODV(MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, LOG_LVL, GUI_FLAG)
 
     odv.run_detection()
 

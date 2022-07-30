@@ -14,22 +14,32 @@ from VideoStream import *
 import json
 import pyttsx3
 import logging
+import configparser
+
+CONFIG_FILE_LOCATION = './odv_config.ini'
 
 class ODV:
-    INPUT_MEAN = 127.5
-    INPUT_STD = 127.5
+    INPUT_MEAN = 0 #127.5
+    INPUT_STD = 0 #127.5
     REAL_WIDTH_DICTIONARY = {}
-    FOCAL_CALIBRATION_CONFIG_PATH = './ref_images/focal_calibration_config.json'
-    REAL_WIDTH_CONFIG_PATH = './ref_images/real_width_config.json'
-    LOG_DIR_PATH = './logs/'
+    FOCAL_CALIBRATION_CONFIG_PATH = '' #'./ref_images/focal_calibration_config.json'
+    REAL_WIDTH_CONFIG_PATH = '' #'./ref_images/real_width_config.json'
+    LOG_DIR_PATH = '' #'./logs/'
+    ALERT_DISTANCE = 0 #2
+    ALERT_INTERVAL = 0 #5
+    SCREEN_PARTING_NUMBER = 0
     
 
-    def __init__(self, MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, log_level):
+    def __init__(self, MODEL_NAME, GRAPH_NAME, LABELMAP_NAME, min_conf_threshold, resW, resH, log_level, GUI_FLAG):        
+        self.gui_flag = GUI_FLAG
+        
         #Logger
         logging.basicConfig(level=log_level ,handlers=[
         logging.FileHandler('./logs/'+str(datetime.now())),
         logging.StreamHandler(sys.stdout)])
         logging.debug("starting ODV, created log file")
+
+        self.get_configurations()
 
         # Get path to current working directory
         CWD_PATH = os.getcwd()
@@ -91,9 +101,28 @@ class ODV:
 
         #TODO: change to dicionary per object - last alerted timestamp
         self.last_alert = datetime.now()
-        self.engine = pyttsx3.init() #ctor        
+        self.engine = pyttsx3.init()  
+        self.engine.setProperty('rate', 160)
+        self.engine.setProperty('voice', 'english_rp+f4')
+
+    def get_configurations(self):
+        DEFAULT_SECTION = 'DEFAULT'
+        config = configparser.ConfigParser()
+        config.read(CONFIG_FILE_LOCATION)
+        self.INPUT_MEAN = config.getfloat(DEFAULT_SECTION,'inputMean')
+        self.INPUT_STD = config.getfloat(DEFAULT_SECTION,'inputStd')
+        self.FOCAL_CALIBRATION_CONFIG_PATH = config.get(DEFAULT_SECTION,'focalCalibrationConfigPath')
+        self.REAL_WIDTH_CONFIG_PATH = config.get(DEFAULT_SECTION,'realWidthConfigPath')
+        self.LOG_DIR_PATH = config.get(DEFAULT_SECTION,'logDirPath')
+        
+        self.ALERT_DISTANCE = config.getint(DEFAULT_SECTION,'alertDistance')
+        self.ALERT_INTERVAL = config.getint(DEFAULT_SECTION,'alertInterval')
+
+        self.SCREEN_PARTING_NUMBER = config.getint(DEFAULT_SECTION,'screenParting')
 
     def run_detection(self):
+        logging.debug("Running Detection Intiated")
+        
         while True:
             # Start timer (for calculating frame rate)
             t1 = cv2.getTickCount()
@@ -122,19 +151,25 @@ class ODV:
                     print(f"object name: {object_name}")
                     if (object_name in self.REAL_WIDTH_DICTIONARY):
                         distance = self.distance_finder(self.focal, self.REAL_WIDTH_DICTIONARY[object_name] , xmax-xmin)
-                        self.alert(object_name , distance, ( xmin + (xmax-xmin)/2))
                         label = '%s: %d%% dist: %d' % (object_name, int(scores[i]*100), distance) # Example: 'person: 72%'
                         labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
                         label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
                         cv2.rectangle(frame, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) 
                         # Draw white box to put label text in
                         cv2.putText(frame, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+                        self.alert(object_name , distance, ( xmin + (xmax-xmin)/2), frame)
+
+                        
+ 
+
 
             # Draw framerate in corner of frame
             cv2.putText(frame,'FPS: {0:.2f}'.format(self.frame_rate_calc),(30,50),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,0),2,cv2.LINE_AA)
 
             # All the results have been drawn on the frame, so it's time to display it.
-            # cv2.imshow('ODV', frame)
+            
+            if(self.gui_flag):
+                cv2.imshow('ODV', frame)
 
             # Calculate framerate
             t2 = cv2.getTickCount()
@@ -263,28 +298,46 @@ class ODV:
         with open(self.REAL_WIDTH_CONFIG_PATH) as json_file:
             self.REAL_WIDTH_DICTIONARY = json.load(json_file)
 
-    def alert(self, object_lable ,object_distance, object_middle_point ):
+    def alert(self, object_label ,object_distance, object_middle_point, frame):
         warning = ""
         diff = (datetime.now() - self.last_alert).seconds
         logging.debug(f"alert time diff:{diff}")
         print(f"imw: {self.imW}, middle point: {object_middle_point}")
-        object_distance = (object_distance / 100.0)
+        object_distance = round((object_distance / 100.0) , 1)
+        
 
-        if(diff >= 5 ):
-            if (object_middle_point < (self.imW/3)): #left third screen
-                # TODO: Meters/CM
-                warning = f"{object_lable} from left"            
-                self.engine.say(warning)
-            elif (object_middle_point >= self.imW*2/3 ):
-                warning = f"{object_lable} from right"            
-                self.engine.say(warning)
-            else:
-                warning = f"{object_lable} ahead"            
-                self.engine.say(warning)
+        if(diff >= self.ALERT_INTERVAL and object_distance < self.ALERT_DISTANCE): 
+            if(self.SCREEN_PARTING_NUMBER == 3):
+                if (object_middle_point < (self.imW/3)): #left third screen
+                    warning = f"{object_label} from left"             
+                    self.engine.say(warning)
+                elif (object_middle_point >= self.imW *  (2/3) ):
+                    warning = f"{object_label} from right"            
+                    self.engine.say(warning)
+                else:
+                    warning = f"{object_label} ahead"            
+                    self.engine.say(warning)
+            if(self.SCREEN_PARTING_NUMBER == 5):
+                if (object_middle_point < (self.imW/5)): #left screen
+                    warning = f"{object_label} from strong left"             
+                    self.engine.say(warning)
+                elif (object_middle_point < self.imW * (2/5) ):
+                    warning = f"{object_label} from left"            
+                    self.engine.say(warning)
+                elif (object_middle_point >= self.imW * (4/5) ):
+                    warning = f"{object_label} from strong right"            
+                    self.engine.say(warning)
+                elif (object_middle_point >= self.imW * (3/5) ):
+                    warning = f"{object_label} from right"            
+                    self.engine.say(warning)
+                else:
+                    warning = f"{object_label} ahead"            
+                    self.engine.say(warning)
             self.last_alert = datetime.now()
             
-            logging.debug(f"alert print: {warning}, distance {object_distance}")
+            distance_warning = f"distance is {object_distance} meters"
+            self.engine.say(distance_warning)
+
+            logging.debug(f"alert print: {warning}, {distance_warning}")
             self.engine.runAndWait()
-        
-            
-       
+            cv2.imwrite(f'Detections/{object_label}_{object_distance}.jpeg', frame)
